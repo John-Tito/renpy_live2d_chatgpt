@@ -1,0 +1,8 @@
+resources
+*.save
+*.bak
+*.rpyb
+game/python-packages
+*.rpyc
+*.pyc
+temp/Demo

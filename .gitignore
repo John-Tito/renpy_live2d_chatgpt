@@ -6,3 +6,4 @@ game/python-packages
 *.rpyc
 *.pyc
 temp/Demo
+game/saves

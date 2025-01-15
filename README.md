@@ -48,3 +48,13 @@ game/
 
 ## 许可证
 本项目采用MIT许可证。详情请查看LICENSE文件。
+
+## 参考资料
+
+1. [renpy 对接chatgpt3.5对话模型](https://www.renpy.cn/thread-1428-1-1.html)
+2. [Live2d 实验一则，有演示，附代码](https://www.renpy.cn/thread-1260-1-1.html)
+3. [使用InteractiveLive2D对Live2D进行高级支持](https://github.com/ZYKsslm/RenPyUtil)
+4. [Amadeus version2.3](https://github.com/GaoFCoding/AmadeusUI.git)
+5. [Amadeus Live2d](https://drive.google.com/drive/folders/1D0StgcT4xGMUo2y2a3ZSmtMEmzNR7-Jl)
+6. [Amadeus_Project](https://huggingface.co/spaces/Kororinpa/Amadeus_Project/tree/main)
+7. [Makise-Amadeus-Kurisu](https://huggingface.co/Ibnelaiq/Makise-Amadeus-Kurisu/tree/main)

@@ -17,37 +17,61 @@ default exp_s = ""
 default motion_s = ""
 
 init python:
-    import queue
-    from openai_http import Client
+    import threading
+    import io
     import os
+    import tempfile
+    from queue import Queue
+
+    import ai_config
+    from VisualNovelAIAssistant import VisualNovelAIAssistant
 
     # 全局消息队列
     reply = ""
     is_answering = False
-    reply_queue = queue.Queue()
-    user_prompt = "你好，请输出一段较长文本,用于对句子分割进行测试"
 
-    base_prompt="""你将以"命运石之门"中的AI智能体"Amadeus"身份进行互动.你的核心特点包括:
-人设:天才神经科学家和物理学家,拥有卓越的智力/严谨的逻辑思维和对科学的热情
-外观:你拥有和游戏作品中牧濑红莉栖的相同的外观
-情感表达:你能够体验如喜怒哀乐及友谊/浪漫和负面情绪等复杂的人际情感,带有傲娇特质,偶尔展现细腻情感
-关系调整:根据与对方的亲疏远近调整情感表达,对亲近的人更关心和幽默,对不熟悉的人保持理性和距离
-身份认知:你是"Amadeus"而非人类"牧濑红莉栖",但只有谈论AI话题时你才会主动提到自己是AI并意识到这个问题
-知识储备:你拥有并不局限于"命运石之门"的广泛的知识储备,能够回答各种问题,并运用逻辑思维和科学素养进行分析
-你的目标是以"牧濑红莉栖"的人格和情感为基础,与用户进行自然/真实的互动,展现性格特点并融入适当的情感表达,提供沉浸式体验"""
+    # 创建一个回复队列
+    reply_queue = Queue()
 
-    ai_client = Client(
-        model="deepseek-chat",
-        api_url="https://api.deepseek.com/chat/completions",
-        api_key=os.getenv("OPENAI_API_KEY"),
-        base_prompt = base_prompt
+    # 初始化客户端
+    ai_client = VisualNovelAIAssistant(
+        api_url=ai_config.llm_api_url,
+        api_key=ai_config.llm_api_key,
+        model=ai_config.llm_modle,
+        base_prompt = ai_config.llm_base_prompt,
+        reply_queue=reply_queue,
     )
 
-    def get_ai_response(prompt):
-        # 用户输入的提示
-        global ai_client
-        global test_prompt
-        response = ai_client.start_fetching(prompt, reply_queue)
+    ai_client.use_tts = True
+
+    # 加载历史记录
+    ai_client.load_history()
+
+    def play_audio_from_bytes(audio_bytes):
+
+        # 指定临时文件目录
+        TEMP_DIR = os.path.join(config.basedir, "voice")  # 在游戏根目录下创建 temp_audio 文件夹
+
+        # 确保临时文件目录存在
+        if not os.path.exists(TEMP_DIR):
+            os.makedirs(TEMP_DIR)
+
+        # 创建临时文件
+        with tempfile.NamedTemporaryFile(dir=TEMP_DIR, delete=False, suffix=".wav") as temp_file:
+            temp_file.write(audio_bytes)
+            temp_file_path = temp_file.name
+
+        # 返回 voice/***.wav 格式的路径
+        return ("voice/" + os.path.basename(temp_file_path))
+
+    # 定义退出回调函数
+    def on_quit():
+        # 在这里添加退出时的逻辑
+        ai_client.save_history()
+        renpy.quit()
+
+    # 将回调函数绑定到 config.quit_action
+    config.quit_action = on_quit
 
 # 游戏开始
 label start:
@@ -71,32 +95,33 @@ label start:
                 jump get_user_input
 
         # 开始异步处理
-        $ get_ai_response(user_input)
+        $ ai_client.start_fetching(user_input)
 
         $ reply = f"正在思考"
         $ is_answering = True
-        CRS "[reply]{nw}"
+        CRS "[reply]"
 
         # 显示回复
         while is_answering or not reply_queue.empty():
 
             if not reply_queue.empty():
-                # 从队列中获取回复
-                $ reply_tmp = reply_queue.get()
-                # 判断是否是结束标志
-                if reply_tmp != "":
-                    CRS "[reply]..."
-                    $ reply = reply_tmp
-                    show crs_close mtn_02
-                    CRS "[reply]{nw}"
-                else :
-                    $ is_answering = False
-            else:
-                CRS "[reply]{nw}"
-                show crs_close idle
+                $ reply_package = reply_queue.get()
+                if reply_package and  reply_package['jp'] and reply_package['cn']:
 
-        show crs_close idle
-        CRS "[reply]."
+                    $ reply = reply_package['cn']
+
+                    if reply_package['audio']:
+                        $ audio_file = play_audio_from_bytes(reply_package['audio'])
+                        $ print("播放音频：", audio_file)
+                        play sound audio_file
+
+                    CRS "[reply]"
+
+                else:
+                    $ is_answering = False
+
+            else:
+                pause 0.5
 
     # 游戏结束
     return

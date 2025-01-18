@@ -7,3 +7,5 @@ game/python-packages
 *.pyc
 temp/Demo
 game/saves
+game/voice
+game/history
